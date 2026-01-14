@@ -1,28 +1,33 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using MSCLoader;
 using HutongGames.PlayMaker;
 using UnityEngine;
 
-namespace SorbetTweaks {
-    public class SorbetTweaks : Mod {
+namespace SorbetTweaks
+{
+    public class SorbetTweaks : Mod
+    {
         public override string ID => "SorbetTweaks"; // Your (unique) mod ID 
         public override string Name => "Sorbet Tweaks"; // Your mod name
         public override string Author => "Krutonium"; // Name of the Author (your name)
         public override string Version => "1.0"; // Version
         public override string Description => "A collection of Tweaks for your Sorbet"; // Short description of your mod
         public override Game SupportedGames => Game.MyWinterCar; //Supported Games
+
         public override void ModSetup()
         {
             SetupFunction(Setup.OnLoad, Mod_OnLoad);
             SetupFunction(Setup.FixedUpdate, Mod_FixedUpdate);
             SetupFunction(Setup.ModSettings, Mod_Settings);
         }
-        
+
 
         private static GameObject sorbet;
         private static FsmFloat charge;
-        
+        private static Drivetrain drivetrain;
+
         public SettingsSlider chargeRateSetting;
         public SettingsCheckBox showCurrentStateOfChargeInConsole;
         public SettingsCheckBox lockToMaxSetting;
@@ -30,6 +35,12 @@ namespace SorbetTweaks {
         public SettingsCheckBox autoTransmission;
         public SettingsSlider shiftUpRPMSetting;
         public SettingsSlider shiftDownRPMSetting;
+        public SettingsSlider horsePower;
+        public SettingsSlider carWeight;
+        public SettingsSlider maxTorque;
+        public SettingsSlider maxTorqueRPM;
+        public SettingsSlider minimumRPM;
+        public SettingsSlider maximumRPM;
 
         public void Mod_Settings()
         {
@@ -41,11 +52,19 @@ namespace SorbetTweaks {
                 "Show current State of Charge in Console (WILL PRINT A LOT)", false);
             lockToMaxSetting =
                 Settings.AddCheckBox("cheatFullPower", "Lock Battery to Full Charge (can never die)", false);
-            drivetrainSetting = Settings.AddDropDownList("transmission", "Transmission Type", Enum.GetNames(typeof(Drivetrain.Transmissions)), 1);
+            drivetrainSetting = Settings.AddDropDownList("transmission", "Transmission Type",
+                Enum.GetNames(typeof(Drivetrain.Transmissions)), 1);
             Settings.AddText("XWD does not work, Sadly.");
             autoTransmission = Settings.AddCheckBox("autoTransmission", "Automatic Transmission", false);
             shiftUpRPMSetting = Settings.AddSlider("shiftUpRPM", "Shift Up RPM", 1000f, 8000f, 4500f);
             shiftDownRPMSetting = Settings.AddSlider("shiftDownRPM", "Shift Down RPM", 500f, 7000f, 2000f);
+            horsePower = Settings.AddSlider("horsePower", "Engine Horsepower", 0f, 300f, 72f);
+            carWeight = Settings.AddSlider("carWeight", "Car Weight", 0f, 2000f, 995f);
+            maxTorque = Settings.AddSlider("maxTorque", "Maximum Torque", 100f, 500, 130f);
+            maxTorqueRPM = Settings.AddSlider("maxTorqueRPM", "RPM at which you reach max Torque", 500f, 10000f, 3000f);
+            maximumRPM = Settings.AddSlider("maxRPM", "Maxmimum Engine RPM", 5000f, 15000f, 7000f);
+            minimumRPM = Settings.AddSlider("minRPM",
+                "Minimum Engine RPM (Higher can avoid stalls, but uses more fuel)", 500f, 1500f, 650f);
         }
 
         private string[] EnumToStringList<T>() where T : struct
@@ -57,10 +76,8 @@ namespace SorbetTweaks {
         {
             return (T)Enum.Parse(typeof(T), value);
         }
-        
-        
 
-        
+
         private void Mod_FixedUpdate()
         {
             float TargetValue = 120f;
@@ -90,9 +107,14 @@ namespace SorbetTweaks {
                     ModConsole.Print(charge.Value);
                 }
             }
+
+            if (drivetrain.rpm > (maximumRPM.GetValue() + 100))
+            {
+                drivetrain.rpm = maximumRPM.GetValue();
+            }
         }
 
-        
+
         private void Mod_OnLoad()
         {
             sorbet = GameObject.Find("SORBET(190-200psi)");
@@ -101,20 +123,30 @@ namespace SorbetTweaks {
                 ModConsole.Error("FAILED TO FIND SORBET!!!");
                 return;
             }
-            PlayMakerFSM power = sorbet.GetComponentsInChildren<PlayMakerFSM>().ToList().Find((PlayMakerFSM fsm) => fsm.FsmName == "Power");
+
+            PlayMakerFSM power = sorbet.GetComponentsInChildren<PlayMakerFSM>().ToList()
+                .Find((PlayMakerFSM fsm) => fsm.FsmName == "Power");
             if (sorbet != null && power != null)
             {
                 charge = power.FsmVariables.FindFsmFloat("Charge");
             }
-            Drivetrain drivetrain = sorbet.GetComponent<Drivetrain>();
-            
-            if (drivetrain != null)
+
+            drivetrain = sorbet.GetComponent<Drivetrain>();
+            Rigidbody rigidbody = sorbet.GetComponent<Rigidbody>();
+            if (drivetrain != null && rigidbody != null)
             {
-                drivetrain.transmission = StringToEnum<Drivetrain.Transmissions>(drivetrainSetting.GetSelectedItemName());
+                drivetrain.transmission =
+                    StringToEnum<Drivetrain.Transmissions>(drivetrainSetting.GetSelectedItemName());
                 ModConsole.Log($"Made Sorbett {drivetrainSetting.GetSelectedItemName()}");
                 drivetrain.automatic = autoTransmission.GetValue();
                 drivetrain.shiftUpRPM = (float)shiftUpRPMSetting.GetValue();
                 drivetrain.shiftDownRPM = (float)shiftDownRPMSetting.GetValue();
+                drivetrain.maxPower = horsePower.GetValue();
+                drivetrain.maxTorque = maxTorque.GetValue();
+                drivetrain.maxTorqueRPM = maxTorqueRPM.GetValue();
+                drivetrain.minRPM = minimumRPM.GetValue();
+                drivetrain.maxRPM = maximumRPM.GetValue();
+                rigidbody.mass = carWeight.GetValue();
             }
         }
     }
