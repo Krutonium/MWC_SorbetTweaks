@@ -12,7 +12,7 @@ namespace SorbetTweaks
         public override string ID => "SorbetTweaks"; // Your (unique) mod ID 
         public override string Name => "Sorbet Tweaks"; // Your mod name
         public override string Author => "Krutonium"; // Name of the Author (your name)
-        public override string Version => "1.0"; // Version
+        public override string Version => "1.1"; // Version
         public override string Description => "A collection of Tweaks for your Sorbet"; // Short description of your mod
         public override Game SupportedGames => Game.MyWinterCar; //Supported Games
 
