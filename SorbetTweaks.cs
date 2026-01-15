@@ -12,7 +12,7 @@ namespace SorbetTweaks
         public override string ID => "SorbetTweaks"; // Your (unique) mod ID 
         public override string Name => "Sorbet Tweaks"; // Your mod name
         public override string Author => "Krutonium"; // Name of the Author (your name)
-        public override string Version => "1.1"; // Version
+        public override string Version => "1.2"; // Version
         public override string Description => "A collection of Tweaks for your Sorbet"; // Short description of your mod
         public override Game SupportedGames => Game.MyWinterCar; //Supported Games
 
@@ -41,6 +41,10 @@ namespace SorbetTweaks
         public SettingsSlider maxTorqueRPM;
         public SettingsSlider minimumRPM;
         public SettingsSlider maximumRPM;
+        public SettingsCheckBox enableABS;
+        public SettingsCheckBox enableTCS;
+        public SettingsSlider minimumTCS;
+        public SettingsSlider minimumABS;
 
         public void Mod_Settings()
         {
@@ -65,6 +69,10 @@ namespace SorbetTweaks
             maximumRPM = Settings.AddSlider("maxRPM", "Maxmimum Engine RPM", 5000f, 15000f, 7000f);
             minimumRPM = Settings.AddSlider("minRPM",
                 "Minimum Engine RPM (Higher can avoid stalls, but uses more fuel)", 500f, 1500f, 650f);
+            enableABS = Settings.AddCheckBox("abs", "Enable ABS (Antilock Breaks)", false);
+            minimumABS = Settings.AddSlider("minABS", "Minimum Speed at which ABS works", 0f, 40f, 5f);
+            enableTCS = Settings.AddCheckBox("tcs", "Enable TCS (Traction Control)", false);
+            minimumTCS = Settings.AddSlider("minTCS", "Minimum Speed at which TCS works", 0f, 20f, 10f);
         }
 
         private string[] EnumToStringList<T>() where T : struct
@@ -133,7 +141,8 @@ namespace SorbetTweaks
 
             drivetrain = sorbet.GetComponent<Drivetrain>();
             Rigidbody rigidbody = sorbet.GetComponent<Rigidbody>();
-            if (drivetrain != null && rigidbody != null)
+            AxisCarController axisCarController = sorbet.GetComponent<AxisCarController>();
+            if (drivetrain != null && rigidbody != null && axisCarController != null)
             {
                 drivetrain.transmission =
                     StringToEnum<Drivetrain.Transmissions>(drivetrainSetting.GetSelectedItemName());
@@ -147,6 +156,10 @@ namespace SorbetTweaks
                 drivetrain.minRPM = minimumRPM.GetValue();
                 drivetrain.maxRPM = maximumRPM.GetValue();
                 rigidbody.mass = carWeight.GetValue();
+                axisCarController.ABS =  enableABS.GetValue();
+                axisCarController.ABSMinVelocity = minimumABS.GetValue();
+                axisCarController.TCS = enableTCS.GetValue();
+                axisCarController.TCSMinVelocity = minimumTCS.GetValue();
             }
         }
     }
